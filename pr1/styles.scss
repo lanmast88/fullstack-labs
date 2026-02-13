@@ -1,0 +1,53 @@
+$primary-color: #3498db;
+$card-bg: #222;
+$card-radius: 12px;
+$text-color: white;
+
+@mixin button-style($bg-color) {
+    background-color: $bg-color;
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+body {
+    margin: 0;
+    background-color: #333;
+    height: 100vh;
+}
+
+.card {
+    width: 320px;
+    margin: 16px;
+    background: $card-bg;
+    border-radius: $card-radius;
+    overflow: hidden;
+
+    &__image {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+    }
+
+    &__content {
+        padding: 16px;
+    }
+
+    &__title {
+        margin: 8px 0;
+        font-size: 20px;
+        color: $text-color;
+    }
+
+    &__description {
+        font-size: 14px;
+        margin-bottom: 16px;
+        color: white
+    }
+
+    &__button {
+        @include button-style($primary-color);
+    }
+}
