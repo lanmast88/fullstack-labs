@@ -1,4 +1,12 @@
 {
+  "scripts": {
+    "start": "set PORT=3001 && react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "sass": "sass src --style compressed --quiet",
+    "dev": "npm run sass & npm run start"
+  },
   "dependencies": {
     "express": "^5.2.1",
     "nanoid": "^5.1.6"
