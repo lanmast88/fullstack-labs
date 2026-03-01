@@ -291,20 +291,3 @@ min-height: 72px;
 }
 }
 
-
-CREATE OR REPLACE FUNCTION categorize_order_ushakov(order_amount DECIMAL(10,2))
-RETURNS TEXT AS $$
-BEGIN
-IF order_amount IS NULL or order_amount < 0 THEN
-RETURN NULL;
-END IF;
-IF order_amount < 1000 THEN
-RETURN 'малый';
-END IF;
-IF order_amount >= 1000 AND order_amount < 5000 THEN
-RETURN 'СРЕДНИЙ';
-IF order_amount >= 5000 AND order_amount < 20000 THEN
-RETURN 'КРУПНЫЙ';
-IF order_amount >= 20000 THEN
-RETURN 'ОСОБО КРУПНЫЙ';
-END;
