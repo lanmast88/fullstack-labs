@@ -13,6 +13,28 @@ const ACCESS_EXPIRES_IN = "15m";
 const users = [];
 const products = [];
 
+function logger(req, res, next) {
+  const start = Date.now();
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+
+    console.log({
+      time: new Date().toISOString(),
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      user: req.user?.sub || null,
+      body: req.body
+    });
+  });
+
+  next();
+}
+
+app.use(logger);
+
 // --- Auth Middleware ---
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization || "";
