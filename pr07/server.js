@@ -14,12 +14,41 @@ const REFRESH_SECRET = "refresh_secret";
 const ACCESS_EXPIRES_IN = "15m";
 const REFRESH_EXPIRES_IN = "7d";
 
-const users = [];
-const products = [];
+// --- Mock Data ---
+const users = [
+  {
+    id: "mock-user-1",
+    email: "user@example.com",
+    first_name: "Иван",
+    last_name: "Иванов",
+    hashedPassword: bcrypt.hashSync("user123", 10),
+    role: "user",
+    blocked: false,
+  },
+  {
+    id: "mock-admin-1",
+    email: "admin@example.com",
+    first_name: "Глеб",
+    last_name: "Ушаков",
+    hashedPassword: bcrypt.hashSync("admin123", 10),
+    role: "admin",
+    blocked: false,
+  },
+];
+
+const products = [
+  {
+    id: "mock-product-1",
+    title: "Ноутбук Pro",
+    category: "Электроника",
+    description: "Мощный ноутбук для работы и учёбы",
+    price: 89999,
+  },
+];
 
 function generateAccessToken(user) {
   return jwt.sign(
-    { sub: user.id, email: user.email },
+    { sub: user.id, email: user.email, role: user.role },
     ACCESS_SECRET,
     { expiresIn: ACCESS_EXPIRES_IN }
   );
@@ -27,7 +56,7 @@ function generateAccessToken(user) {
 
 function generateRefreshToken(user) {
   return jwt.sign(
-    { sub: user.id, email: user.email },
+    { sub: user.id, email: user.email, role: user.role },
     REFRESH_SECRET,
     { expiresIn: REFRESH_EXPIRES_IN }
   );
@@ -48,7 +77,7 @@ function logger(req, res, next) {
       status: res.statusCode,
       duration: `${duration}ms`,
       user: req.user?.sub || null,
-      body: req.body
+      body: req.body,
     });
   });
 
@@ -57,7 +86,7 @@ function logger(req, res, next) {
 
 app.use(logger);
 
-// --- Auth Middleware ---
+// --- Middleware ---
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization || "";
   const [scheme, token] = header.split(" ");
@@ -75,9 +104,22 @@ function authMiddleware(req, res, next) {
   }
 }
 
+// roleMiddleware принимает один или несколько допустимых ролей
+function roleMiddleware(...roles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: "Forbidden: insufficient role" });
+    }
+    next();
+  };
+}
+
 // --- Auth Routes ---
 
-// POST /api/auth/register
+// POST /api/auth/register — Гость
 app.post("/api/auth/register", async (req, res) => {
   const { email, first_name, last_name, password } = req.body;
 
@@ -85,9 +127,9 @@ app.post("/api/auth/register", async (req, res) => {
     return res.status(400).json({ error: "email, first_name, last_name and password are required" });
   }
 
-  const existing = users.find(u => u.email === email);
+  const existing = users.find((u) => u.email === email);
   if (existing) {
-    return res.status(400).json({ error: "User with this email already exists" });
+    return res.status(409).json({ error: "User with this email already exists" });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -97,6 +139,8 @@ app.post("/api/auth/register", async (req, res) => {
     first_name,
     last_name,
     hashedPassword,
+    role: "user",
+    blocked: false,
   };
   users.push(user);
 
@@ -105,10 +149,11 @@ app.post("/api/auth/register", async (req, res) => {
     email: user.email,
     first_name: user.first_name,
     last_name: user.last_name,
+    role: user.role,
   });
 });
 
-// POST /api/auth/login
+// POST /api/auth/login — Гость
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -116,9 +161,13 @@ app.post("/api/auth/login", async (req, res) => {
     return res.status(400).json({ error: "email and password are required" });
   }
 
-  const user = users.find(u => u.email === email);
+  const user = users.find((u) => u.email === email);
   if (!user) {
     return res.status(401).json({ error: "Invalid credentials" });
+  }
+
+  if (user.blocked) {
+    return res.status(403).json({ error: "User is blocked" });
   }
 
   const isValid = await bcrypt.compare(password, user.hashedPassword);
@@ -127,15 +176,13 @@ app.post("/api/auth/login", async (req, res) => {
   }
 
   const accessToken = generateAccessToken(user);
-
   const refreshToken = generateRefreshToken(user);
-
   refreshTokens.add(refreshToken);
 
   res.json({ accessToken, refreshToken });
 });
 
-// POST /api/auth/refresh
+// POST /api/auth/refresh — Гость
 app.post("/api/auth/refresh", (req, res) => {
   const header = req.headers.authorization || "";
   const [scheme, token] = header.split(" ");
@@ -152,7 +199,7 @@ app.post("/api/auth/refresh", (req, res) => {
 
   try {
     const payload = jwt.verify(refreshToken, REFRESH_SECRET);
-    const user = users.find(u => u.id === payload.sub);
+    const user = users.find((u) => u.id === payload.sub);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
@@ -169,9 +216,9 @@ app.post("/api/auth/refresh", (req, res) => {
   }
 });
 
-// GET /api/auth/me
+// GET /api/auth/me — Пользователь
 app.get("/api/auth/me", authMiddleware, (req, res) => {
-  const user = users.find(u => u.id === req.user.sub);
+  const user = users.find((u) => u.id === req.user.sub);
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
@@ -180,13 +227,82 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
     email: user.email,
     first_name: user.first_name,
     last_name: user.last_name,
+    role: user.role,
+    blocked: user.blocked,
   });
+});
+
+// --- Users Routes (Администратор) ---
+
+// GET /api/users — Администратор
+app.get("/api/users", authMiddleware, roleMiddleware("admin"), (req, res) => {
+  res.json(
+    users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      first_name: u.first_name,
+      last_name: u.last_name,
+      role: u.role,
+      blocked: u.blocked,
+    }))
+  );
+});
+
+// GET /api/users/:id — Администратор
+app.get("/api/users/:id", authMiddleware, roleMiddleware("admin"), (req, res) => {
+  const user = users.find((u) => u.id === req.params.id);
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  res.json({
+    id: user.id,
+    email: user.email,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    role: user.role,
+    blocked: user.blocked,
+  });
+});
+
+// PUT /api/users/:id — Администратор
+app.put("/api/users/:id", authMiddleware, roleMiddleware("admin"), (req, res) => {
+  const user = users.find((u) => u.id === req.params.id);
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const { first_name, last_name, email, role } = req.body;
+  if (first_name !== undefined) user.first_name = first_name;
+  if (last_name !== undefined) user.last_name = last_name;
+  if (email !== undefined) user.email = email;
+  if (role !== undefined) user.role = role;
+
+  res.json({
+    id: user.id,
+    email: user.email,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    role: user.role,
+    blocked: user.blocked,
+  });
+});
+
+// DELETE /api/users/:id — Администратор (блокировка)
+app.delete("/api/users/:id", authMiddleware, roleMiddleware("admin"), (req, res) => {
+  const user = users.find((u) => u.id === req.params.id);
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  user.blocked = true;
+
+  res.json({ message: "User blocked", id: user.id });
 });
 
 // --- Products Routes ---
 
-// POST /api/products
-app.post("/api/products", (req, res) => {
+// POST /api/products — Продавец + Администратор
+app.post("/api/products", authMiddleware, roleMiddleware("seller", "admin"), (req, res) => {
   const { title, category, description, price } = req.body;
 
   if (!title || !category || !description || price === undefined) {
@@ -205,23 +321,23 @@ app.post("/api/products", (req, res) => {
   res.status(201).json(product);
 });
 
-// GET /api/products
-app.get("/api/products", (req, res) => {
+// GET /api/products — Пользователь + Продавец + Администратор
+app.get("/api/products", authMiddleware, roleMiddleware("user", "seller", "admin"), (req, res) => {
   res.json(products);
 });
 
-// GET /api/products/:id
-app.get("/api/products/:id", authMiddleware, (req, res) => {
-  const product = products.find(p => p.id === req.params.id);
+// GET /api/products/:id — Пользователь + Продавец + Администратор
+app.get("/api/products/:id", authMiddleware, roleMiddleware("user", "seller", "admin"), (req, res) => {
+  const product = products.find((p) => p.id === req.params.id);
   if (!product) {
     return res.status(404).json({ error: "Product not found" });
   }
   res.json(product);
 });
 
-// PUT /api/products/:id
-app.put("/api/products/:id", authMiddleware, (req, res) => {
-  const product = products.find(p => p.id === req.params.id);
+// PUT /api/products/:id — Продавец + Администратор
+app.put("/api/products/:id", authMiddleware, roleMiddleware("seller", "admin"), (req, res) => {
+  const product = products.find((p) => p.id === req.params.id);
   if (!product) {
     return res.status(404).json({ error: "Product not found" });
   }
@@ -235,9 +351,9 @@ app.put("/api/products/:id", authMiddleware, (req, res) => {
   res.json(product);
 });
 
-// DELETE /api/products/:id
-app.delete("/api/products/:id", authMiddleware, (req, res) => {
-  const index = products.findIndex(p => p.id === req.params.id);
+// DELETE /api/products/:id — Администратор
+app.delete("/api/products/:id", authMiddleware, roleMiddleware("admin"), (req, res) => {
+  const index = products.findIndex((p) => p.id === req.params.id);
   if (index === -1) {
     return res.status(404).json({ error: "Product not found" });
   }
