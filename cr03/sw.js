@@ -1,5 +1,14 @@
-const CACHE_NAME = "notes-cache-v2";
-const ASSETS = ["/", "/index.html", "/app.js", "/style.css"];
+const CACHE_NAME = "notes-cache-v3";
+const ASSETS = [
+  "/",
+  "/index.html",
+  "/app.js",
+  "/style.css",
+  "/manifest.json",
+  "/icons/icon-180.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+];
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches

@@ -9,9 +9,21 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function deleteNote(index) {
+  const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+  notes.splice(index, 1);
+  localStorage.setItem("notes", JSON.stringify(notes));
+  loadNotes();
+}
+
 function loadNotes() {
   const notes = JSON.parse(localStorage.getItem("notes") || "[]");
-  list.innerHTML = notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("");
+  list.innerHTML = notes
+    .map(
+      (note, i) =>
+        `<li>${escapeHtml(note)}<button onclick="deleteNote(${i})">Удалить</button></li>`
+    )
+    .join("");
 }
 
 function addNote(text) {
