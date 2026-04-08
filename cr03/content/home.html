@@ -1,13 +1,17 @@
 <div class="home-content">
-  <form id="note-form" class="row is-center">
-    <input
-      class="col-9"
-      type="text"
-      id="note-input"
-      placeholder="Введите заметку"
-      required
-    />
-    <button class="col-3 button primary" type="submit">Добавить</button>
+  <form id="note-form" style="display:flex;gap:0.6rem;margin-bottom:1rem;">
+    <input type="text" id="note-input" placeholder="Введите текст заметки" required
+      style="flex:1;padding:0.6rem 0.9rem;font-size:16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;outline:none;" />
+    <button class="button primary" type="submit">Добавить</button>
   </form>
-  <ul id="notes-list" style="list-style: none; padding-left: 0"></ul>
+
+  <form id="reminder-form" style="display:flex;gap:0.6rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+    <input type="text" id="reminder-text" placeholder="Текст напоминания" required
+      style="flex:2;min-width:160px;padding:0.6rem 0.9rem;font-size:16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;outline:none;" />
+    <input type="datetime-local" id="reminder-time" required
+      style="flex:1;min-width:180px;padding:0.6rem 0.9rem;font-size:16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;outline:none;" />
+    <button class="button success" type="submit" style="white-space:nowrap;">Добавить с напоминанием</button>
+  </form>
+
+  <ul id="notes-list" style="list-style:none;padding-left:0;"></ul>
 </div>
