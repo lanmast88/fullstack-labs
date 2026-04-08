@@ -1,1 +1,4 @@
 *.pem
+server/vapid-keys.json
+node_modules/
+.DS_Store

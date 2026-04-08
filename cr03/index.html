@@ -16,31 +16,51 @@
     <link rel="icon" href="icons/favicon.ico" sizes="16x16" type="image/ico" />
     <style>
       body {
-        max-width: 1200px;
+        max-width: 720px;
         margin: 0 auto;
+        padding: 0 1rem;
+        background: #f8fafc;
+        color: #1e293b;
       }
       header {
         text-align: center;
-        padding: 2rem 0 1rem;
+        padding: 2rem 0 0;
+      }
+      header h2 {
+        margin-bottom: 1rem;
       }
       .tab {
         background: none;
         border: none;
         cursor: pointer;
+        font-size: 1.2rem !important;
+        padding: 0.7rem 2rem;
+        color: #64748b;
       }
       .tab.active {
         border-bottom: 2px solid #4285f4;
         color: #4285f4;
       }
       #note-form {
-        justify-content: center;
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      #note-input {
+        flex: 1;
       }
       .button.primary {
         background-color: #3b82f6 !important;
         color: #fff !important;
+        white-space: nowrap;
       }
       .button.primary:hover {
         background-color: #2563eb !important;
+      }
+      footer {
+        margin-top: 2rem;
+        padding: 1rem 0;
+        text-align: center;
       }
     </style>
   </head>
@@ -58,6 +78,16 @@
       <!-- Сюда будет загружаться контент -->
     </main>
 
+    <footer class="is-center">
+      <button id="enable-push" class="button success">
+        Включить уведомления
+      </button>
+      <button id="disable-push" class="button error" style="display: none">
+        Отключить уведомления
+      </button>
+    </footer>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
